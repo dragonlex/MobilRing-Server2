@@ -139,14 +139,25 @@ def score_pair(lost: dict, found: dict) -> tuple:
     if colors(lost_name + " " + lost_info) & colors(found_name + " " + found_info):
         bonus += 0.06
 
+    # Категория вещи: совпадение — плюс, разные категории — минус.
+    category_score = 0.0
+    lost_category, found_category = field(lost, "Category"), field(found, "Category")
+    if lost_category and found_category:
+        if normalize(lost_category) == normalize(found_category):
+            category_score = 1.0
+            bonus += 0.10
+        else:
+            bonus -= 0.05
+
     details = {
         "title": round(title_score, 3),
         "info": round(info_score, 3),
         "place": round(place_score, 3),
         "text": round(text_score, 3),
+        "category": round(category_score, 3),
         "bonus": round(bonus, 3),
     }
-    return round(min(1.0, base + bonus), 3), details
+    return round(max(0.0, min(1.0, base + bonus)), 3), details
 
 
 class FirebaseClient:
@@ -304,10 +315,12 @@ def build_prompt(lost: dict, found: dict) -> str:
         "Учитывай тип вещи, приметы, цвет, особенности и место. Разные вещи одного типа — не совпадение.\n"
         "Пропажа:\n"
         f"  название: {field(lost, 'Name')}\n"
+        f"  категория: {field(lost, 'Category')}\n"
         f"  место: {field(lost, 'Location')}\n"
         f"  описание: {field(lost, 'Info')}\n"
         "Находка:\n"
         f"  название: {field(found, 'Name')}\n"
+        f"  категория: {field(found, 'Category')}\n"
         f"  место: {field(found, 'Location')}\n"
         f"  описание: {field(found, 'Info')}\n"
         'Ответ строго в формате: {"same": true или false, "confidence": число от 0 до 1, '
