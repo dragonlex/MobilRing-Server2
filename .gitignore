@@ -1,0 +1,19 @@
+# Firebase session (refresh-token, никогда не публиковать)
+.auth.json
+
+# Служебный ключ сервисного аккаунта, если положите рядом
+*mobilring-firebase-adminsdk*.json
+*serviceAccount*.json
+
+# Модели и бинарники KoboldCpp — качаются отдельно, в git не нужны
+models/
+ai/
+
+# Журналы и кэш Python
+*.log
+__pycache__/
+*.pyc
+
+# Локальные файлы IDE
+.vscode/
+.idea/
