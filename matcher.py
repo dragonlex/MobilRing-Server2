@@ -25,9 +25,13 @@ SYNONYMS = {
     "кошелёк": {"кошелёк", "кошелек", "бумажник", "портмоне"},
     "ключи": {"ключи", "ключ", "связка", "брелок", "ключница"},
     "сумка": {"сумка", "сумочка", "рюкзак", "портфель", "барсетка", "шоппер"},
+    "обувь": {"обувь", "сменка", "сменная", "кроссовки", "кеды", "ботинки", "туфли", "тапки", "сапоги", "мешок"},
+    "форма": {"форма", "спортивная", "спортивка", "физра", "физкультура", "костюм", "футболка", "шорты", "трико"},
+    "пенал": {"пенал", "ручка", "карандаш", "ластик", "канцелярия"},
+    "учебник": {"учебник", "книга", "тетрадь", "дневник", "конспект", "атлас", "зачетка"},
     "очки": {"очки", "оправа", "очков"},
-    "документы": {"документы", "паспорт", "права", "удостоверение", "свидетельство", "снилс"},
-    "карта": {"карта", "карточка", "банковская", "пропуск", "сбербанк"},
+    "документы": {"документы", "паспорт", "права", "удостоверение", "свидетельство", "снилс", "студенческий"},
+    "карта": {"карта", "карточка", "банковская", "пропуск", "сбербанк", "школьная", "проездной", "бейдж"},
     "ноутбук": {"ноутбук", "лэптоп", "макбук", "macbook", "нетбук"},
     "планшет": {"планшет", "ipad", "айпад"},
     "наушники": {"наушники", "наушник", "гарнитура", "airpods", "эйрподс"},
@@ -164,7 +168,14 @@ class FirebaseClient:
     def __init__(self, config: dict):
         self.base = config["database_url"].rstrip("/")
         self.cache = BASE_DIR / config.get("auth_cache", ".auth.json")
-        services = pathlib.Path(config["google_services"])
+        raw_services = pathlib.Path(config["google_services"])
+        candidates = [
+            raw_services if raw_services.is_absolute() else (BASE_DIR / raw_services),
+            BASE_DIR / "google-services.json",
+            BASE_DIR.parent / "MobilRing" / "app" / "google-services.json",
+            BASE_DIR.parent / "MobilRing" / "google-services.json",
+        ]
+        services = next((p.resolve() for p in candidates if p.exists()), candidates[0])
         data = json.loads(services.read_text(encoding="utf-8"))
         self.api_key = data["client"][0]["api_key"][0]["current_key"]
         self.token = ""
@@ -241,15 +252,22 @@ class KoboldClient:
                 log.warning("KoboldCpp недоступен по %s — работаю в режиме эвристики", self.base)
 
     def _probe(self) -> bool:
-        for path in ("/api/v1/model", "/v1/models"):
+        for path in ("/health", "/v1/models", "/api/v1/model"):
             try:
                 response = requests.get(f"{self.base}{path}", timeout=5)
                 if response.status_code == 200:
-                    log.info("KoboldCpp доступен: %s", path)
+                    log.info("Локальная LLM доступна (%s%s)", self.base, path)
                     return True
             except requests.RequestException:
                 continue
         return False
+
+    def ensure_available(self) -> bool:
+        if not self.enabled:
+            return False
+        if not self.available:
+            self.available = self._probe()
+        return self.available
 
     def ask(self, prompt: str) -> str:
         if not self.available:
@@ -331,6 +349,8 @@ def build_prompt(lost: dict, found: dict) -> str:
 def parse_json(text: str):
     if not text:
         return None
+    if "</think>" in text:
+        text = text.split("</think>", 1)[1]
     cleaned = re.sub(r"^```(?:json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
     start = cleaned.find("{")
     end = cleaned.rfind("}")
@@ -395,9 +415,10 @@ def run_once(firebase: FirebaseClient, kobold: KoboldClient, settings: dict, dry
     log.info("Кандидатов после отсева: %d", len(candidates))
 
     created = 0
+    llm_ready = kobold.ensure_available()
     for score, details, lost_key, lost, found_key, found in candidates:
         verdict = {"ok": False, "reason": "LLM выключена"}
-        if kobold.available:
+        if llm_ready:
             try:
                 verdict = kobold.verdict(lost, found)
             except Exception as error:

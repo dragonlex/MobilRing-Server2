@@ -1,22 +1,29 @@
 {
   "firebase": {
     "database_url": "https://mobilring-default-rtdb.firebaseio.com",
-    "google_services": "C:\\apps\\MobilRing\\AndroidApp\\app\\google-services.json",
+    "google_services": "../MobilRing/app/google-services.json",
     "auth_cache": ".auth.json"
+  },
+  "llama": {
+    "server_exe": "D:\\Local_AI\\llama.cpp\\llama-server.exe",
+    "model_path": "D:\\Local_AI\\T-lite\\T-lite-it-1.0.Q4_K_M.gguf",
+    "context": 2048,
+    "gpu_layers": 99
   },
   "kobold": {
     "enabled": true,
     "base_url": "http://127.0.0.1:5001",
     "api": "openai",
     "timeout": 180,
-    "max_tokens": 220,
+    "max_tokens": 160,
     "max_candidates": 15
   },
   "assist": {
     "host": "0.0.0.0",
     "port": 5002,
-    "max_tokens": 220,
-    "temperature": 0.7
+    "max_tokens": 150,
+    "temperature": 0.6,
+    "fallback_without_llm": true
   },
   "matching": {
     "min_score": 0.22,
