@@ -15,11 +15,47 @@
 |---|---|
 | `matcher.py` | основной скрипт: чтение базы, оценка пар, проверка моделью, запись результата |
 | `config.json` | адрес базы, параметры KoboldCpp, пороги, интервал опроса |
+| `setup-kobold.ps1` | установка KoboldCpp и скачивание модели из интернета |
 | `start-matcher.ps1` | запуск поиска в цикле (или один проход с `-Once`) |
 | `start-kobold.ps1` | запуск KoboldCpp с моделью из `models` |
 | `matcher.log` | журнал работы (создаётся сам, в git не хранится) |
 
 `.auth.json`, `models/` и `ai/` в репозиторий не попадают — см. `.gitignore`.
+
+## Установка KoboldCpp и модели
+
+С нуля всё скачивается одним скриптом:
+
+```powershell
+.\setup-kobold.ps1
+```
+
+Что он делает:
+
+1. Берёт с GitHub последний релиз KoboldCpp, находит в нём `koboldcpp.exe` (~600 МБ) и кладёт
+   в `ai\koboldcpp.exe`. Уже скачанный файл повторно не тянет.
+2. Скачивает модель `Qwen2.5-7B-Instruct-1M-Q4_K_M.gguf` (~4,4 ГБ) с Hugging Face
+   в `models\`, предварительно проверив размер и свободное место.
+3. Проверяет, что всё на месте, и подсказывает, если имя модели не совпадает с тем,
+   что ждёт `start-kobold.ps1`.
+
+Полезные параметры:
+
+```powershell
+.\setup-kobold.ps1 -SkipModel            # только KoboldCpp, модель уже есть
+.\setup-kobold.ps1 -SkipKobold           # только модель
+.\setup-kobold.ps1 -Force                # перекачать заново
+.\setup-kobold.ps1 -KoboldVersion v1.124.2
+.\setup-kobold.ps1 -ModelRepo bartowski/Qwen2.5-3B-Instruct-GGUF `
+                   -ModelFile Qwen2.5-3B-Instruct-Q4_K_M.gguf   # модель легче
+```
+
+Скачивание идёт через `aria2c`, если он лежит в `ai` (в сборке KoboldCpp он есть), иначе через
+BITS, иначе обычным потоком с процентами в консоли. Прерванную загрузку можно запустить снова —
+скрипт продолжит с того же места.
+
+Требуется PowerShell 5.1+ и свободное место на диске: около 1 ГБ под KoboldCpp и 5 ГБ под модель.
+
 
 ## Запуск
 
