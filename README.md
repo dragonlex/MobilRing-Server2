@@ -1,6 +1,6 @@
-# MobilRing-Server2
+﻿# MobilRing-Server2
 
-Серверная часть MobilRing: читает объявления из Firebase Realtime Database, ищет пары
+Серверная часть «Бюро находок»: читает объявления из Firebase Realtime Database, ищет пары
 «пропажа ↔ находка» и записывает их в узел `matches`. Приложение
 [MobilRing](https://github.com/dragonlex/MobilRing) показывает эти пары в «Уведомлениях».
 Ещё здесь живёт подсказка описаний для формы заявки.
