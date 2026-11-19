@@ -130,7 +130,12 @@ def score_pair(lost: dict, found: dict) -> tuple:
     lost_info, found_info = field(lost, "Info"), field(found, "Info")
     lost_place, found_place = field(lost, "Location"), field(found, "Location")
 
-    title_score = dice(tokens(lost_name), tokens(found_name))
+    # Названия сравниваем и по словам, и целиком: «кружка» и «кружас» — опечатка,
+    # поэтому берём лучшую из двух оценок, а не только точное совпадение слов.
+    title_score = max(
+        dice(tokens(lost_name), tokens(found_name)),
+        ratio(normalize(lost_name), normalize(found_name)),
+    )
     info_score = dice(tokens(lost_info), tokens(found_info))
     place_score = dice(tokens(lost_place), tokens(found_place))
     text_score = ratio(normalize(f"{lost_name} {lost_info}"), normalize(f"{found_name} {found_info}"))
@@ -330,7 +335,13 @@ class KoboldClient:
 def build_prompt(lost: dict, found: dict) -> str:
     return (
         "Сравни два объявления бюро находок. Реши, могут ли они описывать одну и ту же вещь.\n"
-        "Учитывай тип вещи, приметы, цвет, особенности и место. Разные вещи одного типа — не совпадение.\n"
+        "Правила:\n"
+        "- Названия могут быть с опечатками и искажениями: «кружка» и «кружас» — это одна и та же вещь.\n"
+        "- Короткие и бессмысленные описания («крутая», «приуольная») ничего не доказывают "
+        "и не могут быть признаком разных вещей.\n"
+        "- Совпадение места и типа вещи — сильный довод в пользу совпадения.\n"
+        "- Считай вещи разными, только если различается сам тип (ключи и рюкзак) "
+        "или в описаниях есть явно несовместимые приметы (цвет, размер, надпись).\n"
         "Пропажа:\n"
         f"  название: {field(lost, 'Name')}\n"
         f"  категория: {field(lost, 'Category')}\n"
