@@ -31,7 +31,7 @@
     "llm_min_confidence": 0.6,
     "heuristic_only_min_score": 0.45,
     "allow_same_user": true,
-    "interval_sec": 60,
+    "interval_sec": 300,
     "closed_skip": true
   },
   "logging": {
