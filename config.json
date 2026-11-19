@@ -1,7 +1,7 @@
 {
   "firebase": {
     "database_url": "https://mobilring-default-rtdb.firebaseio.com",
-    "google_services": "../MobilRing/app/google-services.json",
+    "google_services": "../AndroidApp/app/google-services.json",
     "auth_cache": ".auth.json"
   },
   "llama": {
@@ -22,6 +22,7 @@
     "host": "0.0.0.0",
     "port": 5002,
     "max_tokens": 150,
+    "max_words": 110,
     "temperature": 0.6,
     "fallback_without_llm": true
   },
