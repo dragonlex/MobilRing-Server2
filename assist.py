@@ -255,23 +255,30 @@ def process_request(client: firebase_db.Firebase, key: str, value: dict) -> None
     log.info("Заявка %s: готово (%s, %d слов)", key, source, len(text.split()))
 
 
+def scan_pending(client: firebase_db.Firebase) -> None:
+    """Разбирает все заявки со статусом pending, которые сейчас лежат в узле."""
+    try:
+        items = client.get(NODE) or {}
+    except Exception as error:
+        log.warning("Не удалось прочитать /%s: %s", NODE, error)
+        return
+    for key, value in items.items():
+        if isinstance(value, dict) and value.get("status") == "pending":
+            process_request(client, key, value)
+
+
+def poll_pending(client: firebase_db.Firebase, stop: threading.Event, every: int = 15) -> None:
+    """
+    Страховка на случай, если подписка отвалилась молча (сеть, сон ноутбука).
+    Раз в 15 секунд просто смотрит узел: заявки не должны зависать в pending.
+    """
+    while not stop.wait(every):
+        scan_pending(client)
+
+
 def serve_node(client: firebase_db.Firebase, stop: threading.Event) -> None:
-    """
-    Держит подписку на узел assist. На каждое изменение смотрит, нет ли новых
-    заявок со status=pending, и по очереди их обрабатывает.
-    """
-
-    def on_change() -> None:
-        try:
-            items = client.get(NODE) or {}
-        except Exception as error:
-            log.warning("Не удалось прочитать /%s: %s", NODE, error)
-            return
-        for key, value in items.items():
-            if isinstance(value, dict) and value.get("status") == "pending":
-                process_request(client, key, value)
-
-    client.listen(NODE, on_change, stop)
+    """Держит подписку на узел assist и обрабатывает новые заявки сразу."""
+    client.listen(NODE, lambda: scan_pending(client), stop)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -363,7 +370,11 @@ def main() -> int:
                 target=serve_node, args=(client, stop), name="assist-db", daemon=True
             )
             worker.start()
-            log.info("Подписался на узел /%s", NODE)
+            poller = threading.Thread(
+                target=poll_pending, args=(client, stop), name="assist-poll", daemon=True
+            )
+            poller.start()
+            log.info("Подписался на узел /%s (и опрашиваю его раз в 15 с)", NODE)
 
     try:
         server.serve_forever()

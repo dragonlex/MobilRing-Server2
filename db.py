@@ -170,4 +170,7 @@ class Firebase:
                     return
                 log.warning("Подписка на /%s прервалась (%s), переподключаюсь", path, error)
                 time.sleep(2)
-                self.renew()
+                try:
+                    self.renew()
+                except Exception as renew_error:
+                    log.warning("Продлить сессию не удалось: %s", renew_error)
