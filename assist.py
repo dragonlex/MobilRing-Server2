@@ -1,4 +1,4 @@
-"""assist.py — помощь в составлении описания объявления.
+﻿"""assist.py — помощь в составлении описания объявления.
 
 Два режима, оба используют локальную модель (KoboldCpp / llama.cpp):
 
@@ -33,6 +33,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import db as firebase_db
+import text_clean
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 
@@ -125,7 +126,7 @@ def build_prompt(payload: dict) -> str:
         "размер, состояние и приметы не придумывай. "
         f"Кратко укажи место и {action_hint}. "
         "Не придумывай имена, телефоны, номера классов и точные адреса. "
-        "Не начинай со слов «описание» и не используй списки. Ответ — только текст описания."
+        "Пиши только по-русски, без иероглифов. Не начинай со слов «описание» и не используй списки. Ответ — только текст описания."
     )
     return "\n".join(lines)
 
@@ -139,7 +140,7 @@ def ask_model(prompt: str) -> str:
                 "Ты аккуратный помощник бюро находок школы и колледжа. Отвечай по-русски. "
                 "Не выдумывай сведения о вещи: цвет, материал, бренд, модель, размер, "
                 "состояние и приметы, которых нет в запросе, не упоминай. "
-                "Пиши нейтрально и только по фактам из запроса."
+                "Пиши нейтрально и только по фактам из запроса. Отвечай только по-русски: без иероглифов и слов на других языках."
             )},
             {"role": "user", "content": prompt},
         ],
@@ -160,7 +161,7 @@ def ask_model(prompt: str) -> str:
     if "</think>" in text:
         text = text.split("</think>", 1)[1].strip()
     text = text.strip().strip('"').strip("«»").strip("*").strip()
-    return limit_words(" ".join(text.split()))
+    return limit_words(text_clean.strip_foreign(" ".join(text.split())))
 
 
 def build_fallback_description(payload: dict) -> str:

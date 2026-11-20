@@ -1,4 +1,4 @@
-"""Поиск совпадений между пропажами и находками MobilRing."""
+﻿"""Поиск совпадений между пропажами и находками MobilRing."""
 
 import argparse
 import json
@@ -9,6 +9,8 @@ import sys
 import time
 
 import requests
+
+import text_clean
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 
@@ -327,7 +329,7 @@ class KoboldClient:
             "ok": True,
             "same": same,
             "confidence": max(0.0, min(1.0, confidence)),
-            "reason": str(parsed.get("reason", ""))[:300],
+            "reason": text_clean.strip_foreign(str(parsed.get("reason", "")))[:300],
             "raw": raw.strip()[:400],
         }
 
@@ -353,7 +355,7 @@ def build_prompt(lost: dict, found: dict) -> str:
         f"  место: {field(found, 'Location')}\n"
         f"  описание: {field(found, 'Info')}\n"
         'Ответ строго в формате: {"same": true или false, "confidence": число от 0 до 1, '
-        '"reason": "короткое объяснение по-русски"}'
+        '"reason": "короткое объяснение по-русски, без иероглифов"}'
     )
 
 
